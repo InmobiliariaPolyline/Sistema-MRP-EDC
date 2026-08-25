@@ -2,6 +2,7 @@
 import streamlit as st
 from datetime import datetime, date, timedelta
 import plotly.graph_objects as go
+from textwrap import dedent
 
 from database import SessionLocal
 from services.budget_service import (
@@ -597,7 +598,8 @@ else:
                     f' &nbsp;·&nbsp; <em>{_reason_txt}</em>'
                     f'</div>'
                 )
-            st.markdown(f"""
+            # Corrección: HTML directo evita que la tarjeta se muestre como código.
+            st.html(dedent(f"""
             <div class="{card_class}">
               <div class="{icon_class}">&#128188;</div>
               <div class="bud-info">
@@ -615,7 +617,7 @@ else:
                 </div>
                 {_floating_note}
               </div>
-            </div>""", unsafe_allow_html=True)
+            </div>"""))
 
         with col_toggle:
             st.write("")
