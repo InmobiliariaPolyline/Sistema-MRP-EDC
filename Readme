@@ -1,0 +1,323 @@
+# 📦 Sistema MRP Ligero + Gestión de Despachos y Trazabilidad
+
+## 🧾 Descripción del Proyecto
+
+Este proyecto es un sistema web desarrollado con **Streamlit** que permite gestionar:
+
+* Inventario multi-almacén
+* Requerimientos de materiales
+* Despachos desde almacén principal
+* Recepciones en almacenes de obra
+* Trazabilidad completa mediante movimientos
+* Dashboard con indicadores en tiempo real
+
+El sistema implementa un **MRP (Material Requirements Planning) básico**, orientado a pequeñas empresas (por ejemplo, sector construcción o textil).
+
+---
+
+## 🏗️ Arquitectura
+
+* **Frontend:** Streamlit
+* **Backend:** Python
+* **ORM:** SQLAlchemy
+* **Base de datos:** SQLite (MVP)
+* **Estructura modular por servicios**
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+proyecto/
+│
+├── app.py
+├── database.py
+├── models/
+│   ├── __init__.py
+│   ├── warehouse.py
+│   ├── material.py
+│   ├── inventory.py
+│   ├── requirement.py
+│   ├── dispatch.py
+│   ├── receipt.py
+│   ├── movement.py
+│
+├── services/
+│   ├── inventory_service.py
+│   ├── requirement_service.py
+│   ├── dispatch_service.py
+│   ├── receipt_service.py
+│   ├── dashboard_service.py
+│
+├── pages/
+│   ├── inventory.py
+│   ├── requirements.py
+│   ├── dispatches.py
+│   ├── receipts.py
+│   ├── dashboard.py
+```
+
+---
+
+## ⚙️ Instalación
+
+### 1. Clonar el proyecto
+
+```bash
+git clone <repo_url>
+cd proyecto
+```
+
+---
+
+### 2. Crear entorno virtual
+
+```bash
+python -m venv venv
+```
+
+Activar entorno:
+
+**Windows**
+
+```bash
+venv\Scripts\activate
+```
+
+**Linux / Mac**
+
+```bash
+source venv/bin/activate
+```
+
+---
+
+### 3. Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+Si no tienes requirements:
+
+```bash
+pip install streamlit sqlalchemy pandas
+```
+
+---
+
+## 🗄️ Base de Datos
+
+El sistema usa SQLite por defecto.
+
+### Crear base de datos
+
+Asegúrate de tener en `database.py`:
+
+```python
+engine = create_engine("sqlite:///mrp.db")
+```
+
+Luego ejecuta:
+
+```python
+from database import Base, engine
+import models
+
+Base.metadata.create_all(bind=engine)
+```
+
+O ejecuta tu app directamente (si ya lo tienes integrado).
+
+---
+
+## 🚀 Ejecución del Sistema
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## 🔄 Flujo de Uso del Sistema
+
+---
+
+### 1. Crear Almacenes
+
+* 1 almacén **principal**
+* 1 o más almacenes de **obra**
+
+---
+
+### 2. Registrar Materiales
+
+Campos:
+
+* Código
+* Nombre
+* Unidad
+
+---
+
+### 3. Gestionar Inventario
+
+* Agregar stock al almacén principal
+* Visualizar stock y reservas
+
+---
+
+### 4. Crear Requerimientos
+
+Desde almacenes de obra:
+
+* Seleccionar materiales
+* Definir cantidades
+
+El sistema:
+
+* Intenta reservar stock automáticamente
+* Estado:
+
+  * `pending`
+  * `partial`
+  * `fulfilled`
+
+---
+
+### 5. Reprocesamiento Automático
+
+Cuando aumenta el stock:
+
+* Se reintentan reservas
+* Cambian estados automáticamente
+
+---
+
+### 6. Generar Despachos
+
+Desde requerimientos:
+
+* Seleccionar cantidades a despachar
+
+El sistema:
+
+* Reduce stock
+* Reduce reserva
+* Registra movimiento OUT
+* Actualiza estado del requerimiento
+
+---
+
+### 7. Registrar Recepción
+
+En almacén de obra:
+
+* Confirmar despacho
+
+El sistema:
+
+* Aumenta stock en obra
+* Registra movimiento IN
+
+---
+
+### 8. Visualizar Dashboard
+
+Muestra:
+
+* Stock total
+* Materiales críticos
+* Requerimientos pendientes
+* Movimientos recientes
+* Gráficos por almacén
+
+---
+
+## 🔁 Flujo Logístico Completo
+
+```
+Requerimiento
+   ↓
+Reserva de stock (principal)
+   ↓
+Despacho (salida principal)
+   ↓
+Recepción (entrada obra)
+   ↓
+Movimiento registrado
+```
+
+---
+
+## 📊 Lógica del Inventario
+
+* **Stock disponible = stock - reserved**
+* No se puede despachar sin stock
+* No se puede reservar si no hay disponibilidad
+
+---
+
+## 🔁 Movimientos (Trazabilidad)
+
+Cada operación genera un registro:
+
+* IN → entrada
+* OUT → salida
+
+Campos:
+
+* almacén
+* material
+* cantidad
+* tipo
+* referencia
+
+---
+
+## ⚠️ Validaciones Implementadas
+
+* No sobredespachar
+* No reservar sin stock
+* No duplicar recepciones
+* Control de estados
+
+---
+
+## 🚀 Mejoras Futuras
+
+* Autenticación de usuarios
+* Exportación a Excel
+* Guía de remisión PDF
+* Alertas automáticas
+* Integración con PostgreSQL
+* API REST
+
+---
+
+## 🧠 Nivel del Sistema
+
+Este proyecto representa:
+
+✔ MRP básico
+✔ Sistema multi-almacén
+✔ Trazabilidad completa
+✔ Base tipo ERP
+
+---
+
+## 👨‍💻 Autor
+
+Proyecto desarrollado como sistema académico/profesional para gestión logística.
+
+---
+
+## 📌 Notas Finales
+
+* El sistema está diseñado para escalar fácilmente
+* Se puede migrar a PostgreSQL sin cambios mayores
+* Arquitectura lista para producción
+
+---
+
+🔥 Con este sistema ya tienes una base sólida para un **ERP logístico completo**
