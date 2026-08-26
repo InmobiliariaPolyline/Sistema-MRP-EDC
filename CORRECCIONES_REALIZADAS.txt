@@ -1,0 +1,230 @@
+CORRECCIONES REALIZADAS - SISTEMA MRP
+=====================================
+
+Este documento resume las correcciones realizadas durante la revisión del sistema.
+El archivo es únicamente informativo y no participa en la ejecución de la aplicación.
+
+
+1. Cancelación de despachos
+----------------------------
+Problema:
+Al cancelar un despacho, el sistema devolvía el stock al almacén de obra.
+
+Por qué ocurría:
+El despacho descuenta stock del almacén principal, pero la cancelación usaba el
+almacén de obra para crear o actualizar el inventario.
+
+Solución:
+La cancelación ahora devuelve el stock al almacén principal, que es el almacén
+de origen correcto. También registra el movimiento de entrada de la devolución.
+
+
+2. Despachos con materiales repetidos
+-------------------------------------
+Problema:
+Si el mismo material aparecía más de una vez en un despacho, se podía superar
+la cantidad solicitada o actualizar el ítem equivocado.
+
+Por qué ocurría:
+El sistema buscaba siempre el primer ítem que coincidía con el material y
+validaba cada entrada por separado.
+
+Solución:
+Las cantidades del mismo material se unen antes de validar y procesar el despacho.
+
+
+3. Uso de stock no reservado o inactivo
+---------------------------------------
+Problema:
+Un despacho podía revisar o descontar registros de inventario que no debían
+participar en la operación.
+
+Por qué ocurría:
+La reserva solo consideraba inventario activo, pero el despacho podía recorrer
+también registros inactivos y no comprobaba correctamente la reserva disponible.
+
+Solución:
+El despacho ahora usa únicamente inventario activo y comprueba que exista tanto
+stock físico como reserva suficiente antes de descontar cantidades.
+
+
+4. Requerimientos cancelados
+----------------------------
+Problema:
+Se podía intentar despachar un requerimiento que ya estaba cancelado.
+
+Solución:
+El sistema rechaza despachos asociados a requerimientos cancelados.
+
+
+5. Cancelación de requerimientos parciales
+------------------------------------------
+Problema:
+Al cancelar un requerimiento parcialmente atendido, algunas reservas podían
+quedar bloqueadas.
+
+Por qué ocurría:
+Solo se liberaban reservas de ítems con estado "reserved". Los ítems con estado
+"partial" no siempre se procesaban.
+
+Solución:
+También se liberan las unidades todavía pendientes de los ítems parciales.
+
+
+6. Protección por propietario
+-----------------------------
+Problema:
+Algunas funciones de servicio buscaban registros solo por su ID, sin verificar
+que pertenecieran al cliente actual.
+
+Riesgo:
+Una llamada incorrecta o una futura ruta podría modificar datos de otro cliente.
+
+Solución:
+Se añadieron validaciones opcionales de propietario en requerimientos,
+recepciones e inventario. Las páginas operativas ahora envían el propietario
+actual al servicio antes de modificar información.
+
+
+7. Recepciones en una sola transacción
+--------------------------------------
+Problema:
+La recepción se guardaba antes de terminar de crear todos sus movimientos e
+ítems. Si ocurría un error después, podía quedar información incompleta.
+
+Solución:
+La recepción se prepara con flush y se confirma una sola vez al finalizar todo
+el procesamiento.
+
+
+8. Recepción de despachos cancelados
+------------------------------------
+Problema:
+Un despacho cancelado podía seguir apareciendo como disponible para recepción.
+
+Solución:
+Las páginas y el servicio de recepción ahora rechazan despachos cancelados.
+
+
+9. Estado persistente de los despachos
+--------------------------------------
+Problema:
+El código asignaba un estado de cancelación al despacho, pero el modelo no tenía
+una columna para guardar ese valor en la base de datos.
+
+Solución:
+Se añadió el campo persistente "status" al modelo Dispatch y una migración para
+agregarlo también en bases de datos existentes.
+
+
+10. Generación de PDFs
+----------------------
+Problemas:
+- Se abría una sesión de base de datos nueva por cada material del PDF.
+- Las sesiones no se cerraban.
+- La ubicación del almacén podía no estar definida si no existía el destino.
+
+Solución:
+Se reutiliza una sola sesión, se cierra al finalizar el PDF y se establece un
+valor predeterminado para la ubicación del destino.
+
+
+11. Intentos fallidos de inicio de sesión
+-----------------------------------------
+Problema:
+Los intentos se guardaban en minúsculas, pero después del login correcto se
+borraban comparando el texto original.
+
+Solución:
+La limpieza de intentos también normaliza el usuario a minúsculas.
+
+
+12. Navegación nativa visible durante la carga
+----------------------------------------------
+Problema:
+Al cambiar de página aparecía brevemente la navegación nativa de Streamlit,
+antes de mostrar el sidebar personalizado.
+
+Por qué ocurría:
+La navegación nativa se ocultaba con CSS después de que la página ya comenzaba
+a cargarse.
+
+Solución:
+Se desactivó la navegación nativa desde la configuración inicial de Streamlit.
+El sidebar personalizado se mantiene sin cambios funcionales.
+
+
+13. Overlay oscuro de precarga
+------------------------------
+Problema:
+Una capa oscura cubría la pantalla durante la carga y daba la impresión de que
+la interfaz desaparecía o tardaba demasiado en mostrarse.
+
+Solución:
+Se eliminó la cubierta opaca de transición y se dejó una entrada visual breve
+para el contenido principal. También se respetan las preferencias de movimiento
+reducido del sistema.
+
+
+14. JavaScript del sidebar
+--------------------------
+Problema:
+El bloque JavaScript del sidebar contenía marcadores de conflicto de Git.
+Aunque estaban dentro de un texto Python, llegaban al navegador y podían romper
+la asignación de iconos y estados de los botones.
+
+Solución:
+Se eliminaron los marcadores de conflicto y se dejó un único mapa válido de
+botones e iconos.
+
+
+15. Mejoras visuales generales
+------------------------------
+Problema:
+Había diferencias de espaciado, botones, campos y estados visuales entre áreas.
+
+Solución:
+Se añadió una capa visual compartida para mejorar:
+- Espaciado y jerarquía de contenidos.
+- Estados hover y focus de botones.
+- Campos de entrada y selectores.
+- Alertas y tarjetas.
+- Adaptación del sidebar a pantallas pequeñas.
+
+No se eliminaron elementos ni se cambiaron los flujos funcionales.
+
+
+16. Tarjeta de presupuestos mostrada como código
+------------------------------------------------
+Problema:
+La tarjeta de un presupuesto mostraba etiquetas como </div> y otros fragmentos
+HTML en vez de mostrar correctamente su contenido visual.
+
+Por qué ocurría:
+El contenido HTML se estaba enviando mediante st.markdown con una indentación que
+Streamlit interpretaba parcialmente como un bloque de código.
+
+Solución:
+Se normalizó la indentación y se cambió esa tarjeta para usar st.html, que procesa
+el contenido como HTML directo. La tarjeta conserva su icono, nombre, estado,
+montos y botones.
+
+
+17. Documentación de las correcciones
+-------------------------------------
+Se añadieron comentarios breves en el código para explicar las correcciones más
+importantes y facilitar el mantenimiento por otros programadores.
+
+
+VALIDACIÓN
+----------
+- Los archivos Python compilan correctamente con python -m compileall.
+- No quedaron errores del editor en los archivos modificados.
+- Se comprobó que no quedaran marcadores de conflicto en el sidebar.
+- El archivo .env se mantuvo fuera de Git para no publicar credenciales.
+
+
+COMMITS RELACIONADOS
+--------------------
+- 8bf38c9 - Corrige interfaz y flujo de inventario
+- 48f9cd0 - Corrige vista previa de presupuestos

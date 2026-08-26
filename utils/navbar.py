@@ -616,6 +616,27 @@ def render_sidebar_menu():
             st.session_state["_current_page"] = page
             st.switch_page(page)
 
+    def _operations_menu(enabled: bool = True):
+        """Muestra Operaciones y evita abrir formularios sin cliente seleccionado."""
+        st.markdown('<p class="sb-section">Operaciones</p>', unsafe_allow_html=True)
+        operation_items = (
+            ("Almacenes", "pages/warehouses.py", "menu_warehouses"),
+            ("Materiales", "pages/materials.py", "menu_materials"),
+            ("Inventario Principal", "pages/inventory.py", "menu_inventory"),
+            ("Requerimientos", "pages/requirements.py", "menu_requirements"),
+            ("Despachos", "pages/dispatches.py", "menu_dispatches"),
+            ("Recepciones", "pages/receipts.py", "menu_receipts"),
+            ("Inventario Obra", "pages/inventory_obra.py", "menu_inventory_obra"),
+        )
+        for label, page, key in operation_items:
+            if enabled:
+                _btn(label, page, key)
+            else:
+                st.button(
+                    label, use_container_width=True, key=key, disabled=True,
+                    help="Selecciona Visualizar en un cliente para usar este módulo.",
+                )
+
     # ── Menú según rol / estado de impersonación ──────────────────────────────
     if role == "superadmin" and not is_impersonating:
         st.markdown('<p class="sb-section">Administración</p>', unsafe_allow_html=True)
@@ -629,19 +650,15 @@ def render_sidebar_menu():
         st.markdown('<span class="sb-section-gap"></span>', unsafe_allow_html=True)
         st.markdown('<p class="sb-section">Monitoreo</p>', unsafe_allow_html=True)
         _btn("Logs de Acceso",   "pages/access_logs.py",   "menu_access_logs")
+        # El módulo se mantiene visible, pero necesita un cliente seleccionado.
+        _operations_menu(enabled=False)
     else:
         # Cliente normal o superadmin en modo vista
         st.markdown('<p class="sb-section">Principal</p>', unsafe_allow_html=True)
         _btn("Dashboard",        "pages/dashboard.py",    "menu_dashboard")
 
-        st.markdown('<p class="sb-section">Operaciones</p>', unsafe_allow_html=True)
-        _btn("Almacenes",          "pages/warehouses.py",      "menu_warehouses")
-        _btn("Materiales",         "pages/materials.py",       "menu_materials")
-        _btn("Inventario Principal","pages/inventory.py",      "menu_inventory")
-        _btn("Requerimientos",     "pages/requirements.py",    "menu_requirements")
-        _btn("Despachos",          "pages/dispatches.py",      "menu_dispatches")
-        _btn("Recepciones",        "pages/receipts.py",        "menu_receipts")
-        _btn("Inventario Obra",    "pages/inventory_obra.py",  "menu_inventory_obra")
+        # En este punto existe un propietario: el cliente actual o impersonado.
+        _operations_menu()
 
     # ── Spacer ────────────────────────────────────────────────────────────────
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
