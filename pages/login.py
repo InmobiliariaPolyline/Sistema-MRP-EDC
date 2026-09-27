@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+from sqlalchemy.exc import OperationalError
 from database import SessionLocal
 from services.auth_service import login_user
 from services.login_log_service import log_login
 from services.session_service import create_session
 from utils.session_manager import init_session
+from utils.theme import apply_public_theme
 
 st.set_page_config(
     page_title="Acceso — Sistema MRP Polyline",
@@ -23,7 +25,8 @@ for _k, _v in [("logged_in", False), ("user_id", None), ("username", None), ("se
     st.session_state.setdefault(_k, _v)
 if init_session():
     _db_early.close()
-    _dest = "pages/admin.py" if st.session_state.get("role") == "superadmin" else "pages/dashboard.py"
+    _dest = "pages/dashboard.py"
+    st.session_state["_current_page"] = _dest
     st.switch_page(_dest)
     st.stop()
 _db_early.close()
@@ -202,6 +205,7 @@ label[data-testid="stWidgetLabel"] p { font-size:.76rem !important;font-weight:7
 }
 </style>
 """, unsafe_allow_html=True)
+apply_public_theme()
 
 # ── Segunda verificación de sesión ────────────────────────────────────────────
 for _k, _v in [("logged_in", False), ("user_id", None), ("username", None), ("session_token", None)]:
@@ -210,7 +214,8 @@ for _k, _v in [("logged_in", False), ("user_id", None), ("username", None), ("se
 db = SessionLocal()
 if init_session():
     db.close()
-    dest = "pages/admin.py" if st.session_state.get("role") == "superadmin" else "pages/dashboard.py"
+    dest = "pages/dashboard.py"
+    st.session_state["_current_page"] = dest
     st.switch_page(dest)
     st.stop()
 
@@ -280,25 +285,31 @@ if submit_login:
     if not username or not password:
         st.error("Completa todos los campos.")
     else:
-        with st.spinner("Verificando..."):
-            success, user, msg = login_user(db, username, password)
-        if success:
-            st.session_state.login_attempts = 0
-            log_login(db, user.id, user.username)
-            token = create_session(db, user.id, user.username, role=user.role)
-            st.session_state.logged_in     = True
-            st.session_state.user_id       = user.id
-            st.session_state.username      = user.username
-            st.session_state.role          = user.role
-            st.session_state.session_token = token
-            db.close()
-            if user.role == "superadmin":
-                st.switch_page("pages/admin.py")
-            else:
-                st.switch_page("pages/dashboard.py")
+        try:
+            with st.spinner("Verificando..."):
+                success, user, msg = login_user(db, username, password)
+        except OperationalError:
+            db.rollback()
+            st.error(
+                "No se pudo conectar con la base de datos. Verifica "
+                "DATABASE_URL en .env o Streamlit Secrets."
+            )
         else:
-            st.session_state.login_attempts += 1
-            st.error(msg)
+            if success:
+                st.session_state.login_attempts = 0
+                log_login(db, user.id, user.username)
+                token = create_session(db, user.id, user.username, role=user.role)
+                st.session_state.logged_in     = True
+                st.session_state.user_id       = user.id
+                st.session_state.username      = user.username
+                st.session_state.role          = user.role
+                st.session_state.session_token = token
+                db.close()
+                st.session_state["_current_page"] = "pages/dashboard.py"
+                st.switch_page("pages/dashboard.py")
+            else:
+                st.session_state.login_attempts += 1
+                st.error(msg)
 
 # ── Enlace a registro ─────────────────────────────────────────────────────────
 st.page_link("pages/register.py", label="¿No tienes cuenta? Crear cuenta →")

@@ -100,6 +100,11 @@ st.markdown("""
 # Verificar/restaurar sesión desde cookie
 session_valid = init_session()
 
+if session_valid:
+    st.session_state["_current_page"] = "pages/dashboard.py"
+    st.switch_page("pages/dashboard.py")
+    st.stop()
+
 # Render navbar at the top
 # st.markdown("---")
 # render_navbar()

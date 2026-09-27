@@ -23,7 +23,8 @@ def require_cliente():
     require_login()
     if st.session_state.get("role") == "superadmin":
         if not st.session_state.get("impersonating"):
-            st.switch_page("pages/admin.py")
+            st.session_state["_current_page"] = "pages/dashboard.py"
+            st.switch_page("pages/dashboard.py")
 
 
 def get_current_user_id():

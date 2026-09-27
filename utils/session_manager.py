@@ -152,11 +152,11 @@ def logout_redirect() -> None:
 
 def login_redirect(token: str, path: str = None) -> None:
     """Navega a la página destino tras login. session_state se preserva con switch_page."""
-    dest_page = "pages/admin.py" if path == "/admin" else "pages/dashboard.py"
-    st.switch_page(dest_page)
+    st.session_state["_current_page"] = "pages/dashboard.py"
+    st.switch_page("pages/dashboard.py")
 
 
 def write_cookie_and_redirect(token: str, path: str = "/dashboard") -> None:
     """Mantenido por compatibilidad — ahora delega en switch_page."""
-    dest_page = "pages/admin.py" if path == "/admin" else "pages/dashboard.py"
-    st.switch_page(dest_page)
+    st.session_state["_current_page"] = "pages/dashboard.py"
+    st.switch_page("pages/dashboard.py")

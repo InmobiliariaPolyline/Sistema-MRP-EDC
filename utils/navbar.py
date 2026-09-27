@@ -1,6 +1,7 @@
 import streamlit as st
 
 _PAGE_KEYS = {
+    "pages/admin.py":           "menu_admin",
     "pages/dashboard.py":       "menu_dashboard",
     "pages/warehouses.py":      "menu_warehouses",
     "pages/materials.py":       "menu_materials",
@@ -22,6 +23,9 @@ def _apply_theme():
         pass
 
 def _current_page() -> str:
+    active = st.session_state.get("_current_page", "")
+    if active in _PAGE_KEYS:
+        return active
     try:
         path = st.context.headers.get("Referer", "")
         for k in _PAGE_KEYS:
@@ -30,7 +34,7 @@ def _current_page() -> str:
                 return k
     except Exception:
         pass
-    return st.session_state.get("_current_page", "")
+    return active
 
 def render_navbar():
     """Oculta la navegación nativa y mantiene estable la transición entre páginas."""
@@ -74,6 +78,97 @@ def render_navbar():
 
 def render_help_button(content_html: str) -> None:
     """Botón flotante de ayuda (?) que abre un drawer lateral con instrucciones de solo lectura."""
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {
+        background: #1c2b22 !important;
+        border-right: 1px solid #314237 !important;
+        overflow: hidden !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        display: flex !important; flex-direction: column !important;
+        height: 100dvh !important; overflow: hidden !important; padding: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] { flex: 0 0 auto !important; }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        flex: 1 1 auto !important; min-height: 0 !important; height: auto !important;
+        overflow-x: hidden !important; overflow-y: auto !important; padding: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
+        height: auto !important; min-height: 0 !important; overflow: visible !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(button[data-nav-group]) {
+        padding: .08rem .55rem !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-group] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        min-height: 2.8rem !important;
+        padding: .55rem .72rem !important;
+        border: 1px solid transparent !important;
+        border-radius: 6px !important;
+        background: transparent !important;
+        color: #e3ece5 !important;
+        text-align: left !important;
+        font-weight: 650 !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-group] p { color: inherit !important; }
+    section[data-testid="stSidebar"] button[data-nav-group]:hover,
+    section[data-testid="stSidebar"] button[data-nav-group][data-expanded="true"] {
+        background: rgba(255,255,255,.085) !important;
+        border-color: rgba(255,255,255,.08) !important;
+        color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(button[data-nav-child]) {
+        padding: 0 .55rem 0 1.15rem !important;
+        border-left: 1px solid rgba(188,208,192,.22) !important;
+        margin-left: .96rem !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child] {
+        width: 100% !important;
+        min-height: 2.35rem !important;
+        padding: .42rem .62rem !important;
+        border: 0 !important;
+        border-radius: 5px !important;
+        background: transparent !important;
+        color: #b9c7bc !important;
+        text-align: left !important;
+        font-size: .81rem !important;
+        font-weight: 500 !important;
+        box-shadow: none !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child] p { color: inherit !important; }
+    section[data-testid="stSidebar"] button[data-nav-child]:hover {
+        background: rgba(255,255,255,.075) !important;
+        color: #fff !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child][kind="primary"],
+    section[data-testid="stSidebar"] button[data-nav-child][data-testid="stBaseButton-primary"] {
+        background: #31704f !important;
+        color: #fff !important;
+        box-shadow: inset 3px 0 0 #9dcca9 !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child]:disabled {
+        color: #728177 !important;
+        opacity: .62 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.sb-divider) {
+        flex-grow: 1 !important;
+        min-height: 1.5rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.sb-divider)
+    + [data-testid="stElementContainer"] {
+        border-top: 1px solid rgba(255,255,255,.11) !important;
+        padding: .4rem .55rem .6rem !important;
+    }
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] { width: min(88vw, 20rem) !important; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown(f"""
     <style>
     .help-fab {{
@@ -161,6 +256,7 @@ def render_help_button(content_html: str) -> None:
 
 def render_sidebar_menu():
     """Renderiza el sidebar personalizado."""
+    st.session_state.setdefault("dark_mode", False)
     _apply_theme()
 
     st.markdown("""
@@ -179,24 +275,23 @@ def render_sidebar_menu():
     section[data-testid="stSidebar"]                    { scrollbar-width: none !important; }
 
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-        position: relative !important; height: 100dvh !important;
-        overflow: hidden !important; padding: 0 !important;
+        display: flex !important; flex-direction: column !important;
+        height: 100dvh !important; overflow: hidden !important; padding: 0 !important;
         background: transparent !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > div {
-        position: absolute !important; inset: 0 !important;
-        padding: 0 !important; margin: 0 !important;
-        overflow: hidden !important; height: 100% !important;
+    section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] { flex: 0 0 auto !important; }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        flex: 1 1 auto !important; min-height: 0 !important; height: auto !important;
+        overflow-x: hidden !important; overflow-y: auto !important; padding: 0 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > div > div:not([data-testid="stVerticalBlock"]) {
-        height: 100% !important; padding: 0 !important; margin: 0 !important;
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > div {
+        position: relative !important; height: auto !important; min-height: 100% !important;
+        overflow: visible !important; padding: 0 !important; margin: 0 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > div > [data-testid="stVerticalBlock"],
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > div > div > [data-testid="stVerticalBlock"] {
-        display: flex !important; flex-direction: column !important;
-        align-items: stretch !important; height: 100dvh !important;
-        padding: 0 !important; margin: 0 !important;
-        gap: 0 !important; overflow: hidden !important;
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > div > [data-testid="stVerticalBlock"] {
+        display: flex !important; flex-direction: column !important; align-items: stretch !important;
+        height: auto !important; min-height: 100% !important; padding: 0 !important; margin: 0 !important;
+        gap: 0 !important; overflow: visible !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] [data-testid="stVerticalBlock"] {
         height: auto !important; min-height: 0 !important;
@@ -492,8 +587,6 @@ def render_sidebar_menu():
         background: rgba(245,158,11,.22) !important;
         color: #fde68a !important;
     }
-
-    /* Avatar impersonado */
     .sb-avatar-imp {
         background: linear-gradient(140deg, #d97706 0%, #f59e0b 100%) !important;
         box-shadow: 0 2px 8px rgba(245,158,11,.35) !important;
@@ -504,12 +597,8 @@ def render_sidebar_menu():
 
     /* Ajustes responsive sin cambiar la estructura del menú. */
     @media (max-width: 768px) {
-        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-            width: min(86vw, 19rem) !important;
-        }
         .sb-header { padding: .8rem .85rem .7rem; }
         .sb-section { padding-left: .85rem; padding-right: .85rem; }
-        [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
         [data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
             min-height: 2.55rem !important;
         }
@@ -518,23 +607,213 @@ def render_sidebar_menu():
     </style>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] {
+        background: #171d1a !important;
+        border-right: 1px solid #303a34 !important;
+    }
+    .sb-logo {
+        background: linear-gradient(145deg, #d77630, #ed9b4c) !important;
+        animation: none !important;
+        box-shadow: 0 5px 16px rgba(237,139,58,.2) !important;
+    }
+    .sb-avatar { background: linear-gradient(145deg, #438a69, #69b58a) !important; box-shadow: none !important; }
+    .sb-user-row { background: rgba(105,181,138,.07) !important; border-color: rgba(105,181,138,.16) !important; }
+    .sb-brand-sub, .sb-section { color: #87958b !important; }
+    [data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+        color: #f6bd87 !important;
+        background: rgba(237,139,58,.11) !important;
+        box-shadow: inset 3px 0 0 #ed8b3a, inset 0 0 0 1px rgba(237,139,58,.16) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover {
+        background: #252e28 !important;
+        color: #f0f4f1 !important;
+    }
+    [data-testid="stSidebar"] button[data-nav="dashboard"]::before { filter: sepia(.7) saturate(.8); }
+    .help-fab { background: #26332b !important; border-color: #46554a !important; color: #e8eee9 !important; }
+    .help-fab:hover { background: #d87932 !important; box-shadow: 0 6px 22px rgba(237,139,58,.3) !important; }
+    .help-drawer { background: rgba(23,29,26,.98) !important; border-left-color: #35413a !important; }
+    .help-drawer-title { color: #e8eee9 !important; }
+    .help-drawer-badge { background: rgba(237,139,58,.12) !important; border-color: rgba(237,139,58,.25) !important; color: #f0a05c !important; }
+    .help-step { border-radius: 7px !important; border-color: #35413a !important; background: #1b221f !important; }
+    .help-step-n { background: rgba(105,181,138,.14) !important; border-color: rgba(105,181,138,.26) !important; color: #91cba8 !important; }
+    @media (max-width: 768px) {
+        .help-drawer { width: min(370px, 90vw) !important; right: max(-400px, -100vw) !important; }
+        .help-drawer.open { right: 0 !important; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] { overflow: hidden !important; }
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        display: flex !important; flex-direction: column !important;
+        height: 100dvh !important; overflow: hidden !important; padding: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarHeader"] { flex: 0 0 auto !important; }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        flex: 1 1 auto !important; min-height: 0 !important; height: auto !important;
+        overflow-x: hidden !important; overflow-y: auto !important; padding: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > div {
+        position: relative !important; height: auto !important; min-height: 100% !important;
+        overflow: visible !important; padding: 0 !important; margin: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > div > [data-testid="stVerticalBlock"] {
+        display: flex !important; flex-direction: column !important; height: auto !important;
+        min-height: 100% !important; overflow: visible !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(button[data-nav-group]) { padding: .08rem .55rem !important; }
+    section[data-testid="stSidebar"] button[data-nav-group] {
+        display: flex !important; align-items: center !important; justify-content: space-between !important;
+        width: 100% !important; min-height: 2.8rem !important; padding: .55rem .72rem !important;
+        border: 1px solid transparent !important; border-radius: 6px !important;
+        background: transparent !important; color: #e3ece5 !important;
+        text-align: left !important; font-weight: 650 !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-group] p { color: inherit !important; }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+        background: transparent !important; border-color: transparent !important;
+        color: #dce7df !important; font-size: .9rem !important; font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] p { color: inherit !important; }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover {
+        background: rgba(255,255,255,.09) !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+        background: #31704f !important; border: 1px solid #4d8b67 !important;
+        color: #fff !important; box-shadow: inset 3px 0 0 #b9d9c0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] p { color: inherit !important; }
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        color: #dce7df !important; font-size: .86rem !important; font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-group]:hover,
+    section[data-testid="stSidebar"] button[data-nav-group][data-expanded="true"] {
+        background: rgba(255,255,255,.085) !important; border-color: rgba(255,255,255,.08) !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(button[data-nav-child]) {
+        padding: 0 .55rem 0 1.15rem !important; border-left: 1px solid rgba(188,208,192,.22) !important;
+        margin-left: .96rem !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child] {
+        width: 100% !important; min-height: 2.35rem !important; padding: .42rem .62rem !important;
+        border: 0 !important; border-radius: 5px !important; background: transparent !important;
+        color: #d2ddd5 !important; text-align: left !important; font-size: .86rem !important;
+        font-weight: 550 !important; box-shadow: none !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child] p { color: inherit !important; }
+    section[data-testid="stSidebar"] button[data-nav-child]:hover { background: rgba(255,255,255,.075) !important; color: #fff !important; }
+    section[data-testid="stSidebar"] button[data-nav-child][data-testid="stBaseButton-primary"] {
+        background: #31704f !important; color: #fff !important; box-shadow: inset 3px 0 0 #9dcca9 !important;
+    }
+    section[data-testid="stSidebar"] button[data-nav-child]:disabled { color: #87958b !important; opacity: .72 !important; }
+    section[data-testid="stSidebar"] button[data-nav-child]:disabled p { color: #aab8ad !important; }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.sb-divider) { flex-grow: 1 !important; min-height: 1.5rem !important; }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.sb-divider) + [data-testid="stElementContainer"] {
+        border-top: 1px solid rgba(255,255,255,.11) !important; padding: .4rem .55rem .6rem !important;
+    }
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] { width: min(88vw, 20rem) !important; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] .sb-brand-name,
+    section[data-testid="stSidebar"] .sb-user-name { color: #f4f7f4 !important; }
+    section[data-testid="stSidebar"] .sb-brand-sub,
+    section[data-testid="stSidebar"] .sb-user-role { color: #c6d2c8 !important; }
+    section[data-testid="stSidebar"] .sb-section {
+        color: #c6d2c8 !important; font-size: .68rem !important; font-weight: 750 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+        background: transparent !important; border-color: transparent !important;
+        color: #e1e9e2 !important; font-size: .9rem !important; font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] p { color: #e1e9e2 !important; }
+    section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover {
+        background: rgba(255,255,255,.09) !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] { padding: .08rem .55rem !important; }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] button {
+        width: 100% !important; min-height: 2.8rem !important; padding: .55rem .72rem !important;
+        border: 1px solid transparent !important; border-radius: 6px !important;
+        background: transparent !important; color: #f0f5f0 !important;
+        font-size: .9rem !important; font-weight: 700 !important; text-align: left !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] button p { color: #f0f5f0 !important; }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] button[data-testid="stBaseButton-primary"] {
+        background: #2c4535 !important; border-color: #506858 !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] button[data-testid="stBaseButton-primary"] p { color: #fff !important; }
+    section[data-testid="stSidebar"] [class*="st-key-nav_group_"] button[data-testid="stBaseButton-secondary"]:hover {
+        background: rgba(255,255,255,.09) !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] {
+        padding: .08rem .55rem !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"]:not([class*="st-key-menu_dashboard"]) {
+        padding-left: 1.15rem !important; border-left: 1px solid rgba(188,208,192,.30) !important;
+        margin-left: .96rem !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button {
+        width: 100% !important; min-height: 2.5rem !important; padding: .45rem .62rem !important;
+        border: 0 !important; border-radius: 5px !important; background: transparent !important;
+        color: #dce7df !important; font-size: .87rem !important; font-weight: 550 !important;
+        text-align: left !important; box-shadow: none !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button p { color: #dce7df !important; }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button:hover {
+        background: rgba(255,255,255,.08) !important; color: #fff !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button:hover p { color: #fff !important; }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button[data-testid="stBaseButton-primary"] {
+        background: #31704f !important; color: #fff !important; box-shadow: inset 3px 0 0 #b9d9c0 !important;
+    }
+    section[data-testid="stSidebar"] [class*="st-key-menu_"] button[data-testid="stBaseButton-primary"] p { color: #fff !important; }
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        color: #e1e9e2 !important; font-size: .9rem !important; font-weight: 650 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stToggle"] label { color: #e1e9e2 !important; }
+    section[data-testid="stSidebar"] [data-testid="stElementContainer"]:has(.sb-divider)
+    + [data-testid="stElementContainer"] [data-testid="stBaseButton-secondary"] {
+        color: #f2b1a7 !important; background: transparent !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # El menú mantiene sus botones; este script solo agrega sus iconos y estados.
     # Se usa un observador porque Streamlit vuelve a crear los botones al navegar.
     st.markdown("""
     <script>
     (function(){
-      var N={
+            var N={
         'Dashboard':'dashboard','Almacenes':'warehouses','Materiales':'materials',
         'Requerimientos':'requirements','Recepciones':'receipts','Despachos':'dispatches',
         'Inventario Principal':'inventory','Inventario Obra':'inventory_obra',
-    'Logs de Acceso':'access_logs','Cerrar sesión':'logout',
+                'Logs de Acceso':'access_logs','Cerrar sesión':'logout',
         'Panel de Usuarios':'admin','← Salir de vista':'exit_imp',
         'Presupuestos':'presupuestos','Adicional':'adicional'
       };
+                  var G={'Usuarios (clientes)':'usuarios','Finanzas':'finanzas',
+                      'Catálogo':'catalogo','Inventario':'inventario','Movimientos':'movimientos'};
+            var C={'Almacenes':1,'Materiales':1,'Inventario Principal':1,'Inventario Obra':1,
+                         'Requerimientos':1,'Despachos':1,'Recepciones':1,'Presupuestos':1,
+                         'Adicional':1,'Panel de Usuarios':1,'Logs de Acceso':1};
       function tag(){
         document.querySelectorAll('[data-testid="stSidebar"] button').forEach(function(b){
           var t=b.textContent.trim().replace(/\\s+/g,' ');
           if(N[t]) b.dataset.nav=N[t];
+                    if(C[t]) b.dataset.navChild='true';
+                    var groupLabel=t.replace(/\\s+[▾▸]$/,'');
+                    if(G[groupLabel]){
+                        b.dataset.navGroup=G[groupLabel];
+                        b.dataset.expanded=t.endsWith('▾')?'true':'false';
+                    }
         });
       }
       tag();
@@ -604,61 +883,98 @@ def render_sidebar_menu():
             st.session_state.pop("impersonating", None)
             st.session_state.pop("impersonating_user_id", None)
             st.session_state.pop("impersonating_username", None)
+            st.session_state["_current_page"] = "pages/admin.py"
             st.switch_page("pages/admin.py")
         st.markdown(
             f'<div class="sb-imp-banner">Viendo cuenta: <b>{imp_username}</b></div>',
             unsafe_allow_html=True,
         )
 
-    def _btn(label: str, page: str, key: str):
+    def _btn(label: str, page: str, key: str, group: str = "", enabled: bool = True):
         t = "primary" if (active == page) else "secondary"
+        if not enabled:
+            st.button(
+                label, use_container_width=True, key=key, disabled=True,
+                help="Selecciona Visualizar en un cliente para usar este módulo.",
+            )
+            return
         if st.button(label, use_container_width=True, key=key, type=t):
             st.session_state["_current_page"] = page
+            if group:
+                st.session_state["_nav_open_group"] = group
             st.switch_page(page)
 
-    def _operations_menu(enabled: bool = True):
-        """Muestra Operaciones y evita abrir formularios sin cliente seleccionado."""
-        st.markdown('<p class="sb-section">Operaciones</p>', unsafe_allow_html=True)
-        operation_items = (
+    def _nav_group(group: str, label: str, items: tuple, enabled: bool = True):
+        is_open = st.session_state.get("_nav_open_group") == group
+        indicator = "▾" if is_open else "▸"
+        if st.button(f"{label}  {indicator}", key=f"nav_group_{group}",
+                     type="primary" if is_open else "secondary", use_container_width=True):
+            st.session_state["_nav_open_group"] = "" if is_open else group
+            st.rerun()
+        if is_open:
+            for child_label, page, key in items:
+                _btn(child_label, page, key, group=group, enabled=enabled)
+
+    groups = (
+        ("catalogo", "Catálogo", (
             ("Almacenes", "pages/warehouses.py", "menu_warehouses"),
             ("Materiales", "pages/materials.py", "menu_materials"),
+        )),
+        ("inventario", "Inventario", (
             ("Inventario Principal", "pages/inventory.py", "menu_inventory"),
+            ("Inventario Obra", "pages/inventory_obra.py", "menu_inventory_obra"),
+        )),
+        ("movimientos", "Movimientos", (
             ("Requerimientos", "pages/requirements.py", "menu_requirements"),
             ("Despachos", "pages/dispatches.py", "menu_dispatches"),
             ("Recepciones", "pages/receipts.py", "menu_receipts"),
-            ("Inventario Obra", "pages/inventory_obra.py", "menu_inventory_obra"),
-        )
-        for label, page, key in operation_items:
-            if enabled:
-                _btn(label, page, key)
-            else:
-                st.button(
-                    label, use_container_width=True, key=key, disabled=True,
-                    help="Selecciona Visualizar en un cliente para usar este módulo.",
-                )
+        )),
+    )
+    user_groups = (
+        ("usuarios", "Usuarios (clientes)", (
+            ("Panel de Usuarios", "pages/admin.py", "menu_admin"),
+            ("Logs de Acceso", "pages/access_logs.py", "menu_access_logs"),
+        )),
+    )
+    finance_groups = (
+        ("finanzas", "Finanzas", (
+            ("Presupuestos", "pages/presupuestos.py", "menu_presupuestos"),
+            ("Adicional", "pages/adicional.py", "menu_adicional"),
+        )),
+    )
+
+    page_groups = {
+        page: group
+        for group, _, items in user_groups + finance_groups + groups
+        for _, page, _ in items
+    }
+    if active != st.session_state.get("_nav_last_page"):
+        st.session_state["_nav_last_page"] = active
+        if active in page_groups:
+            st.session_state["_nav_open_group"] = page_groups[active]
+        elif active == "pages/dashboard.py":
+            st.session_state["_nav_open_group"] = ""
+        elif not active and role == "superadmin" and not is_impersonating:
+            st.session_state["_nav_open_group"] = "usuarios"
 
     # ── Menú según rol / estado de impersonación ──────────────────────────────
     if role == "superadmin" and not is_impersonating:
-        st.markdown('<p class="sb-section">Administración</p>', unsafe_allow_html=True)
-        _btn("Panel de Usuarios", "pages/admin.py",         "menu_admin")
-
-        st.markdown('<span class="sb-section-gap"></span>', unsafe_allow_html=True)
-        st.markdown('<p class="sb-section">Finanzas</p>', unsafe_allow_html=True)
-        _btn("Presupuestos",      "pages/presupuestos.py",  "menu_presupuestos")
-        _btn("Adicional",         "pages/adicional.py",     "menu_adicional")
-
-        st.markdown('<span class="sb-section-gap"></span>', unsafe_allow_html=True)
-        st.markdown('<p class="sb-section">Monitoreo</p>', unsafe_allow_html=True)
-        _btn("Logs de Acceso",   "pages/access_logs.py",   "menu_access_logs")
-        # El módulo se mantiene visible, pero necesita un cliente seleccionado.
-        _operations_menu(enabled=False)
+        st.markdown('<p class="sb-section">INICIO</p>', unsafe_allow_html=True)
+        _btn("Dashboard", "pages/dashboard.py", "menu_dashboard")
+        st.markdown('<p class="sb-section">GESTIÓN DE CLIENTES</p>', unsafe_allow_html=True)
+        for group, label, items in user_groups:
+            _nav_group(group, label, items)
+        st.markdown('<p class="sb-section">ADMINISTRACIÓN</p>', unsafe_allow_html=True)
+        for group, label, items in finance_groups:
+            _nav_group(group, label, items)
     else:
-        # Cliente normal o superadmin en modo vista
-        st.markdown('<p class="sb-section">Principal</p>', unsafe_allow_html=True)
+        st.markdown('<p class="sb-section">ESPACIO DE TRABAJO</p>', unsafe_allow_html=True)
         _btn("Dashboard",        "pages/dashboard.py",    "menu_dashboard")
+        for group, label, items in groups:
+            _nav_group(group, label, items)
 
-        # En este punto existe un propietario: el cliente actual o impersonado.
-        _operations_menu()
+    st.markdown('<p class="sb-section">APARIENCIA</p>', unsafe_allow_html=True)
+    st.toggle("Modo oscuro", key="dark_mode", help="Alterna entre tema claro y oscuro.")
 
     # ── Spacer ────────────────────────────────────────────────────────────────
     st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)

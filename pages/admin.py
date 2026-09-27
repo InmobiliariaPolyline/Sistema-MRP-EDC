@@ -503,6 +503,7 @@ else:
                     st.session_state["impersonating"]          = True
                     st.session_state["impersonating_user_id"]  = cliente.id
                     st.session_state["impersonating_username"] = cliente.username
+                    st.session_state["_current_page"]          = "pages/dashboard.py"
                     st.switch_page("pages/dashboard.py")
 
             with col_moves:

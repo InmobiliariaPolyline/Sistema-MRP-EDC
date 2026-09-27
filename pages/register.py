@@ -4,6 +4,7 @@ import streamlit as st
 from database import SessionLocal
 from services.auth_service import register_user
 from utils.session_manager import init_session
+from utils.theme import apply_public_theme
 
 st.set_page_config(
     page_title="Crear cuenta — Sistema MRP Polyline",
@@ -17,7 +18,8 @@ for _k, _v in [("logged_in", False), ("user_id", None), ("username", None), ("se
     st.session_state.setdefault(_k, _v)
 if init_session():
     _db_early.close()
-    _dest = "pages/admin.py" if st.session_state.get("role") == "superadmin" else "pages/dashboard.py"
+    _dest = "pages/dashboard.py"
+    st.session_state["_current_page"] = _dest
     st.switch_page(_dest)
     st.stop()
 _db_early.close()
@@ -226,6 +228,7 @@ label[data-testid="stWidgetLabel"] p { font-size:.76rem !important;font-weight:7
 </style>
 <div id="_mrp_pg_cover"></div>
 """, unsafe_allow_html=True)
+apply_public_theme()
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""

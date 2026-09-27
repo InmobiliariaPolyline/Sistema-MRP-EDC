@@ -25,12 +25,12 @@ st.set_page_config(
 render_navbar()   # oculta el nav nativo antes de cualquier query DB
 require_login()
 
-# ── Tema (siempre oscuro) ─────────────────────────────────────────────────────
-_tpl        = "plotly_dark"
-_font       = "#e2e8f0"
-_grid       = "rgba(255,255,255,0.07)"
+_dark_mode  = st.session_state.get("dark_mode", False)
+_tpl        = "plotly_dark" if _dark_mode else "plotly_white"
+_font       = "#e6ece7" if _dark_mode else "#25342b"
+_grid       = "rgba(230,236,231,0.12)" if _dark_mode else "rgba(37,52,43,0.12)"
 _bg         = "rgba(0,0,0,0)"
-_surface    = "rgba(255,255,255,0.04)"
+_surface    = "rgba(255,255,255,0.82)"
 
 # ── Estilos globales ──────────────────────────────────────────────────────────
 st.markdown("""
@@ -167,7 +167,11 @@ st.markdown(f"""
 
 # ── Datos ─────────────────────────────────────────────────────────────────────
 db   = SessionLocal()
-owner_id = get_current_user_id()
+is_global_admin = (
+    st.session_state.get("role") == "superadmin"
+    and not st.session_state.get("impersonating", False)
+)
+owner_id = None if is_global_admin else get_current_user_id()
 kpis = get_kpis(db, owner_id=owner_id)
 
 # ── Botones Instrucciones y Presupuestos ──────────────────────────────────────
@@ -275,16 +279,16 @@ with col_trend:
         fig_line.add_trace(go.Scatter(
             x=df_trend["Día"], y=df_trend["Entradas"],
             mode="lines+markers", name="Entradas",
-            line=dict(color="#10b981", width=3),
-            marker=dict(size=8, color="#10b981"),
-            fill="tozeroy", fillcolor="rgba(16,185,129,0.10)",
+            line=dict(color="#69b58a", width=3),
+            marker=dict(size=8, color="#69b58a"),
+            fill="tozeroy", fillcolor="rgba(105,181,138,0.10)",
         ))
         fig_line.add_trace(go.Scatter(
             x=df_trend["Día"], y=df_trend["Salidas"],
             mode="lines+markers", name="Salidas",
-            line=dict(color="#f59e0b", width=3),
-            marker=dict(size=8, color="#f59e0b"),
-            fill="tozeroy", fillcolor="rgba(245,158,11,0.08)",
+            line=dict(color="#ed8b3a", width=3),
+            marker=dict(size=8, color="#ed8b3a"),
+            fill="tozeroy", fillcolor="rgba(237,139,58,0.08)",
         ))
         fig_line.update_layout(
             template=_tpl, paper_bgcolor=_bg, plot_bgcolor=_bg,
@@ -303,7 +307,7 @@ with col_donut:
     stock_data = get_stock_by_warehouse(db, owner_id=owner_id)
     if stock_data:
         df_stock = pd.DataFrame(list(stock_data.items()), columns=["Almacén", "Stock"])
-        palette = ["#2563eb","#7c3aed","#0d9488","#d97706","#dc2626","#0ea5e9"]
+        palette = ["#69b58a", "#ed8b3a", "#63b8ad", "#c6a15b", "#c66c5f", "#87958b"]
         fig_donut = px.pie(
             df_stock, names="Almacén", values="Stock",
             hole=0.55,
@@ -364,7 +368,7 @@ with col_top:
             df_top, y="Material", x="Movimientos",
             orientation="h",
             color="Movimientos",
-            color_continuous_scale=["#1e3a8a","#2563eb","#60a5fa"],
+            color_continuous_scale=["#35413a", "#438a69", "#8ac59f"],
             template=_tpl, text_auto=True,
         )
         fig_h.update_layout(
@@ -402,7 +406,7 @@ if _all_buds:
     if _bud_rows:
         _df_bud = pd.DataFrame(_bud_rows)
         _gasto_colors = [
-            "#ef4444" if r["_over"] else ("#6366f1" if r["_finished"] else "#059669")
+            "#c66c5f" if r["_over"] else ("#87958b" if r["_finished"] else "#69b58a")
             for _, r in _df_bud.iterrows()
         ]
         _fig_bud = go.Figure()
@@ -410,7 +414,7 @@ if _all_buds:
             name="Presupuesto S/.",
             x=_df_bud["Proyecto"],
             y=_df_bud["Presupuesto S/."],
-            marker_color="#1e40af",
+            marker_color="#465b50",
             text=[f"S/ {v:,.0f}" for v in _df_bud["Presupuesto S/."]],
             textposition="outside",
             textfont=dict(color=_font, size=10),
@@ -438,9 +442,9 @@ if _all_buds:
         _fig_bud.update_traces(marker_line_width=0)
         st.plotly_chart(_fig_bud, use_container_width=True)
         st.markdown(
-            '<div style="font-size:.73rem;color:rgba(255,255,255,.38);margin-top:-.5rem;margin-bottom:.5rem;">'
-            '&#9632; Azul = Presupuesto &nbsp;·&nbsp; &#9632; Verde = Gasto dentro del presupuesto &nbsp;·&nbsp;'
-            ' &#9632; Rojo = Excede el presupuesto &nbsp;·&nbsp; &#9632; Índigo = Obra finalizada</div>',
+            '<div style="font-size:.73rem;color:#a0ada4;margin-top:-.5rem;margin-bottom:.5rem;">'
+            '&#9632; Grafito = Presupuesto &nbsp;·&nbsp; &#9632; Verde = Gasto dentro del presupuesto &nbsp;·&nbsp;'
+            ' &#9632; Rojo = Excede el presupuesto &nbsp;·&nbsp; &#9632; Gris = Obra finalizada</div>',
             unsafe_allow_html=True,
         )
 
@@ -464,7 +468,7 @@ else:
             dot   = "feed-in" if tipo == "IN" else "feed-out"
             label = "Entrada" if tipo == "IN" else "Salida"
             qty   = f"+{m.qty_change}" if tipo == "IN" else f"-{m.qty_change}"
-            qcol  = "#10b981" if tipo == "IN" else "#f59e0b"
+            qcol  = "#69b58a" if tipo == "IN" else "#ed8b3a"
             arrow = "&#8593;" if tipo == "IN" else "&#8595;"
             st.markdown(f"""
             <div class="feed-item">
@@ -488,7 +492,7 @@ else:
         df_movs = pd.DataFrame(mov_rows)
 
         def _row_style(row):
-            c = "rgba(16,185,129,.10)" if "Entrada" in row["Tipo"] else "rgba(245,158,11,.10)"
+            c = "rgba(105,181,138,.10)" if "Entrada" in row["Tipo"] else "rgba(237,139,58,.10)"
             return [f"background:{c}"] * len(row)
 
         st.dataframe(
