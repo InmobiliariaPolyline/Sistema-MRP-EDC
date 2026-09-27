@@ -1,17 +1,17 @@
-# 📦 Sistema MRP Ligero + Gestión de Despachos y Trazabilidad
+# Sistema MRP EDC
 
 ## 🧾 Descripción del Proyecto
 
-Este proyecto es un sistema web desarrollado con **Streamlit** que permite gestionar:
+Este proyecto es un sistema web desarrollado con **Streamlit**, **SQLAlchemy** y **Python** para gestionar materiales, inventario y operación multi-almacén. Incluye:
 
-* Inventario multi-almacén
-* Requerimientos de materiales
-* Despachos desde almacén principal
-* Recepciones en almacenes de obra
-* Trazabilidad completa mediante movimientos
-* Dashboard con indicadores en tiempo real
+* Inventario multi-almacén, requerimientos, reservas, despachos y recepciones
+* Trazabilidad de entradas y salidas mediante movimientos
+* Dashboard con indicadores y gráficos
+* Administración de clientes y logs de acceso
+* Navegación por módulos, adaptada al rol y al cliente seleccionado
+* Tema claro y oscuro
 
-El sistema implementa un **MRP (Material Requirements Planning) básico**, orientado a pequeñas empresas (por ejemplo, sector construcción o textil).
+Implementa un **MRP (Material Requirements Planning) básico**, orientado a operaciones de construcción y logística.
 
 ---
 
@@ -20,7 +20,7 @@ El sistema implementa un **MRP (Material Requirements Planning) básico**, orien
 * **Frontend:** Streamlit
 * **Backend:** Python
 * **ORM:** SQLAlchemy
-* **Base de datos:** SQLite (MVP)
+* **Base de datos:** SQLite local recomendada para desarrollo; PostgreSQL también es compatible
 * **Estructura modular por servicios**
 
 ---
@@ -28,33 +28,14 @@ El sistema implementa un **MRP (Material Requirements Planning) básico**, orien
 ## 📁 Estructura del Proyecto
 
 ```
-proyecto/
-│
-├── app.py
-├── database.py
-├── models/
-│   ├── __init__.py
-│   ├── warehouse.py
-│   ├── material.py
-│   ├── inventory.py
-│   ├── requirement.py
-│   ├── dispatch.py
-│   ├── receipt.py
-│   ├── movement.py
-│
-├── services/
-│   ├── inventory_service.py
-│   ├── requirement_service.py
-│   ├── dispatch_service.py
-│   ├── receipt_service.py
-│   ├── dashboard_service.py
-│
-├── pages/
-│   ├── inventory.py
-│   ├── requirements.py
-│   ├── dispatches.py
-│   ├── receipts.py
-│   ├── dashboard.py
+Sistema-MRP-EDC/
+├── app.py              Entrada que redirige al login o Dashboard
+├── database.py         Configuración de SQLAlchemy
+├── init_db.py          Inicialización y migraciones
+├── models/             Modelos SQLAlchemy
+├── services/           Lógica de negocio
+├── pages/              Login, Dashboard y módulos del sistema
+└── utils/              Autenticación, sesión, tema y navegación
 ```
 
 ---
@@ -64,8 +45,8 @@ proyecto/
 ### 1. Clonar el proyecto
 
 ```bash
-git clone <repo_url>
-cd proyecto
+git clone https://github.com/InmobiliariaPolyline/Sistema-MRP-EDC.git
+cd Sistema-MRP-EDC
 ```
 
 ---
@@ -98,44 +79,46 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Si no tienes requirements:
-
-```bash
-pip install streamlit sqlalchemy pandas
-```
-
 ---
 
 ## 🗄️ Base de Datos
 
-El sistema usa SQLite por defecto.
+El sistema admite SQLite y PostgreSQL. Para desarrollo local, crea `.env.local` en la raíz con:
 
-### Crear base de datos
-
-Asegúrate de tener en `database.py`:
-
-```python
-engine = create_engine("sqlite:///mrp.db")
+```dotenv
+DATABASE_URL=sqlite:///./mrp.db
 ```
 
-Luego ejecuta:
+La configuración se resuelve en este orden: `.env.local`, Streamlit Secrets y `.env`. `.env.local` y `mrp.db` están ignorados por Git; la base local no se publica ni se comparte automáticamente.
 
-```python
-from database import Base, engine
-import models
+Inicializa el esquema con:
 
-Base.metadata.create_all(bind=engine)
+```bash
+python init_db.py
 ```
 
-O ejecuta tu app directamente (si ya lo tienes integrado).
+El inicializador crea las tablas, ejecuta migraciones aditivas y crea el superadmin si aún no existe. En una base local nueva, las credenciales iniciales son `superadmin` / `Admin123!`; cambia esa contraseña antes de exponer el sistema.
+
+Para usar PostgreSQL, configura una `DATABASE_URL` válida en Streamlit Secrets o `.env` y retira `.env.local`, que tiene prioridad cuando existe.
 
 ---
 
 ## 🚀 Ejecución del Sistema
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
+
+Abre `http://localhost:8501`. Si existe una sesión válida, la entrada raíz conduce al Dashboard; de lo contrario, muestra el login.
+
+## Acceso y navegación
+
+El sistema distingue dos roles:
+
+* **Superadmin:** inicia en el Dashboard global. **Usuarios (clientes)** despliega el panel de clientes y los logs de acceso; **Finanzas** contiene presupuestos y adicionales. Desde el panel, **Visualizar** abre el contexto del cliente elegido.
+* **Cliente o superadmin en modo Visualizar:** inicia en su Dashboard y dispone de **Catálogo** (almacenes y materiales), **Inventario** (principal y obra) y **Movimientos** (requerimientos, despachos y recepciones). Al salir de la vista se regresa a la administración.
+
+El sidebar permite desplegar cada módulo y alternar entre los modos claro y oscuro.
 
 ---
 
@@ -286,12 +269,8 @@ Campos:
 
 ## 🚀 Mejoras Futuras
 
-* Autenticación de usuarios
-* Exportación a Excel
-* Guía de remisión PDF
-* Alertas automáticas
-* Integración con PostgreSQL
-* API REST
+* Pruebas automatizadas de servicios y flujos de inventario
+* API REST para integraciones externas
 
 ---
 
@@ -315,8 +294,8 @@ Proyecto desarrollado como sistema académico/profesional para gestión logísti
 ## 📌 Notas Finales
 
 * El sistema está diseñado para escalar fácilmente
-* Se puede migrar a PostgreSQL sin cambios mayores
-* Arquitectura lista para producción
+* SQLite se usa para desarrollo local; PostgreSQL se configura mediante `DATABASE_URL`
+* La base local y los archivos de entorno se excluyen del control de versiones
 
 ---
 
